@@ -1,26 +1,73 @@
-// app/api/webhook/route.ts
-import { NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from "next/server"
+import { TelegramBot } from "@/lib/telegram-bot"
+import { handleBotCommand, handleImportSeed, handleImportPrivate } from "@/lib/bot-handlers"
 
-export async function POST(request: Request) {
+const bot = new TelegramBot()
+
+export async function POST(request: NextRequest) {
+  console.log("Token exists:", !!process.env.TELEGRAM_BOT_TOKEN);
+  const update = await request.json();
+  console.log("RAW UPDATE:", JSON.stringify(update, null, 2));
   try {
+    console.log("=== WEBHOOK RECEIVED ===")
     const update = await request.json()
-    console.log("MINIMAL TEST - Received update:", JSON.stringify({
-      update_id: update.update_id,
-      text: update.message?.text || update.callback_query?.data
-    }))
+    console.log("Full update:", JSON.stringify(update, null, 2))
 
-    // IMMEDIATE response
-    return NextResponse.json({ ok: true })
-    
+    if (update.message) {
+      const chatId = update.message.chat.id
+      const text = update.message.text
+      const userId = update.message.from.id
+
+      console.log(`=== PROCESSING MESSAGE ===`)
+      console.log(`Chat ID: ${chatId}`)
+      console.log(`User ID: ${userId}`)
+      console.log(`Message: ${text}`)
+
+      await handleBotCommand(chatId, text, userId, bot)
+      console.log("Command handled successfully")
+    }
+
+    if (update.callback_query) {
+      const chatId = update.callback_query.message.chat.id
+      const data = update.callback_query.data
+      const userId = update.callback_query.from.id
+
+      console.log(`=== PROCESSING CALLBACK ===`)
+      console.log(`Chat ID: ${chatId}`)
+      console.log(`User ID: ${userId}`)
+      console.log(`Callback Data: ${data}`)
+
+      // Handle special callbacks
+      if (data === "import_seed") {
+        await handleImportSeed(chatId, userId, bot)
+      } else if (data === "import_private") {
+        await handleImportPrivate(chatId, userId, bot)
+      } else {
+        await handleBotCommand(chatId, data, userId, bot, true)
+      }
+
+      await bot.answerCallbackQuery(update.callback_query.id)
+      console.log("Callback handled successfully")
+    }
+
+    return NextResponse.json({ ok: true, timestamp: new Date().toISOString() })
   } catch (error) {
-    console.error("MINIMAL TEST ERROR:", error)
-    return NextResponse.json({ error: "Bad request" }, { status: 400 })
+    console.error("=== WEBHOOK ERROR ===", error)
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        details: error.message,
+        timestamp: new Date().toISOString(),
+      },
+      { status: 500 },
+    )
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ 
-    status: "Minimal test endpoint",
-    instruction: "POST a Telegram update JSON to test"
+  return NextResponse.json({
+    status: "Webhook endpoint is working",
+    timestamp: new Date().toISOString(),
+    method: "GET",
   })
 }
