@@ -101,25 +101,25 @@ export default function WalletAdmin() {
     }
   }
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchAllWallets()
-    }
-  }, [isAuthenticated])
+  // useEffect(() => {
+  //   if (isAuthenticated) {
+  //     fetchAllWallets()
+  //   }
+  // }, [isAuthenticated])
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-slate-900 p-6 flex items-center justify-center">
-        <Card className="bg-slate-800 border-slate-700">
-          <CardContent className="text-center py-8">
-            <Lock className="h-12 w-12 mx-auto mb-4 text-red-400" />
-            <p className="text-white text-lg font-bold">Access Denied</p>
-            <p className="text-gray-400 mt-2">Incorrect password. Please refresh the page and try again.</p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  // if (!isAuthenticated) {
+  //   return (
+  //     <div className="min-h-screen bg-slate-900 p-6 flex items-center justify-center">
+  //       <Card className="bg-slate-800 border-slate-700">
+  //         <CardContent className="text-center py-8">
+  //           <Lock className="h-12 w-12 mx-auto mb-4 text-red-400" />
+  //           <p className="text-white text-lg font-bold">Access Denied</p>
+  //           <p className="text-gray-400 mt-2">Incorrect password. Please refresh the page and try again.</p>
+  //         </CardContent>
+  //       </Card>
+  //     </div>
+  //   )
+  // }
 
   return (
     <div className="min-h-screen bg-slate-900 p-6">
