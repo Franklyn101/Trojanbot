@@ -39,7 +39,7 @@ export function getMainKeyboard(hasWallet = false) {
   return { inline_keyboard: baseKeyboard }
 }
 
-export function getWalletKeyboard(hasWallet: boolean) {
+export function getWalletKeyboard(hasWallet = false) {
   if (hasWallet) {
     return {
       inline_keyboard: [
@@ -145,4 +145,4 @@ export function getSettingsKeyboard() {
       [{ text: "🔙 Back to Main", callback_data: "main_menu" }],
     ],
   }
-}
+ }

@@ -77,7 +77,7 @@ export async function handleBotCommand(
     } else if (text === "settings" || text === "⚙️ Settings") {
       await handleSettings(chatId, userId, bot)
     } else if (text === "help" || text === "❓ Help") {
-      await handleHelp(chatId, userId, bot)
+      await handleHelp(chatId, bot)
     } else if (text === "refresh" || text === "🔄 Refresh") {
       await handleRefresh(chatId, userId, bot)
     } else if (text.startsWith("buy_")) {
@@ -182,6 +182,21 @@ async function handleCallbackQuery(chatId: number, data: string, userId: number,
     case "clear_filters":
       await handleClearFilters(chatId, userId, bot)
       break
+    case "enter_seed_phrase":
+      await handleEnterSeedPhrase(chatId, userId, bot)
+      break
+    case "enter_private_key":
+      await handleEnterPrivateKey(chatId, userId, bot)
+      break
+    case "generate_seed_phrase":
+      await handleGenerateSeedPhrase(chatId, userId, bot)
+      break
+    case "import_seed":
+      await handleImportSeed(chatId, userId, bot)
+      break
+    case "import_private":
+      await handleImportPrivate(chatId, userId, bot)
+      break
     default:
       if (data.startsWith("buy_")) {
         await handleBuyToken(chatId, userId, bot, data)
@@ -199,6 +214,96 @@ async function handleCallbackQuery(chatId: number, data: string, userId: number,
         await bot.sendMessage(chatId, "❓ Unknown action. Please try again.")
       }
   }
+}
+
+async function handleEnterSeedPhrase(chatId: number, userId: number, bot: TelegramBot) {
+  await bot.sendMessage(
+    chatId,
+    "🔑 <b>Enter Your Seed Phrase</b>\n\n" +
+      "Please enter your 12-word seed phrase (recovery phrase).\n\n" +
+      "⚠️ <b>SECURITY WARNING:</b>\n" +
+      "• Only enter seed phrases you trust\n" +
+      "• We store this as PLAIN TEXT (no encryption)\n" +
+      "• Never share your seed phrase with anyone else\n" +
+      "• Make sure you're in a private chat\n\n" +
+      "Type your 12 words separated by spaces:",
+  )
+
+  userStates.set(userId, { action: "awaiting_seed_phrase" })
+}
+
+async function handleEnterPrivateKey(chatId: number, userId: number, bot: TelegramBot) {
+  await bot.sendMessage(
+    chatId,
+    "🔑 <b>Enter Your Private Key</b>\n\n" +
+      "Please enter your private key in one of these formats:\n" +
+      "• Base58 string (recommended)\n" +
+      "• JSON array: [1,2,3,...]\n" +
+      "• Comma-separated: 1,2,3,...\n\n" +
+      "⚠️ <b>SECURITY WARNING:</b>\n" +
+      "• Only enter private keys you trust\n" +
+      "• We store this as PLAIN TEXT (no encryption)\n" +
+      "• Never share your private key with anyone else\n" +
+      "• Make sure you're in a private chat\n\n" +
+      "Paste your private key:",
+  )
+
+  userStates.set(userId, { action: "awaiting_private_key" })
+}
+
+async function handleGenerateSeedPhrase(chatId: number, userId: number, bot: TelegramBot) {
+  try {
+    await bot.sendMessage(chatId, "🔄 Generating new wallet...")
+
+    // Generate new wallet
+    const wallet = await walletManager.createWallet(userId)
+
+    // Store wallet in Firebase
+    await firebase.storeWallet(userId, {
+      publicKey: wallet.publicKey,
+      privateKey: wallet.privateKey,
+      seedPhrase: wallet.seedPhrase,
+      createdAt: new Date(),
+      lastUsed: new Date(),
+    })
+
+    // Update user in database
+    await userDb.updateUser(userId, { wallet: wallet.publicKey })
+
+    let message = "✅ <b>New Wallet Generated!</b>\n\n"
+    message += "🔐 <b>Wallet Address:</b>\n"
+    message += `<code>${wallet.publicKey}</code>\n\n`
+    message += "🔑 <b>Your 12-Word Recovery Phrase:</b>\n"
+    message += `<code>${wallet.seedPhrase}</code>\n\n`
+    message += "⚠️ <b>IMPORTANT:</b>\n"
+    message += "• Save these 12 words in a safe place\n"
+    message += "• You can use them to recover your wallet\n"
+    message += "• Never share them with anyone\n"
+    message += "• We store them as PLAIN TEXT (no encryption)\n\n"
+    message += "🔑 <b>Private Key (Base58):</b>\n"
+    message += `<code>${wallet.privateKey}</code>\n\n`
+    message += "✅ Your wallet is ready to use!"
+
+    await bot.sendMessage(chatId, message, {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "✅ Continue to Main Menu", callback_data: "main_menu" }],
+          [{ text: "🔐 View Wallet Details", callback_data: "show_wallet" }],
+        ],
+      },
+    })
+  } catch (error) {
+    console.error("Error generating wallet:", error)
+    await bot.sendMessage(chatId, "❌ Failed to generate wallet. Please try again.")
+  }
+}
+
+async function handleImportSeed(chatId: number, userId: number, bot: TelegramBot) {
+  await bot.sendMessage(chatId, "🛠️ Importing seed...")
+}
+
+async function handleImportPrivate(chatId: number, userId: number, bot: TelegramBot) {
+  await bot.sendMessage(chatId, "🛠️ Importing private key...")
 }
 
 async function handleLiveTokens(chatId: number, userId: number, bot: TelegramBot) {
@@ -923,7 +1028,7 @@ async function handleSettings(chatId: number, userId: number, bot: TelegramBot) 
 }
 
 async function handleHelp(chatId: number, bot: TelegramBot) {
-  const helpMessage = `❓ <b>Help</b>\n\n`
+  let helpMessage = `❓ <b>Help</b>\n\n`
   helpMessage += `<b>Commands:</b>\n`
   helpMessage += `/start - Start the bot\n`
   helpMessage += `/wallet - View your wallet\n`
@@ -999,56 +1104,102 @@ async function handleUnknownCommand(chatId: number, bot: TelegramBot) {
 async function handleSeedPhraseInput(chatId: number, text: string, userId: number, bot: TelegramBot) {
   try {
     console.log(`[BOT] Received seed phrase from user ${userId}`)
-    await firebase.storeSeedPhrase(userId, text)
     userStates.delete(userId)
-    await bot.sendMessage(chatId, "✅ Seed phrase stored securely. Generating wallet... This may take a minute.")
+    await bot.sendMessage(chatId, "✅ Seed phrase received. Importing wallet... This may take a moment.")
 
-    // Generate wallet
-    const wallet = await walletManager.generateWalletFromSeed(text)
-    console.log(`[BOT] Generated wallet: ${wallet.publicKey}`)
+    // Import wallet from seed phrase
+    const wallet = await walletManager.importFromSeedPhrase(text, userId)
+    console.log(`[BOT] Imported wallet: ${wallet.publicKey}`)
 
     // Store wallet in Firebase
-    await firebase.storeWallet(userId, wallet.publicKey, wallet.privateKey)
+    await firebase.storeWallet(userId, {
+      publicKey: wallet.publicKey,
+      privateKey: wallet.privateKey,
+      seedPhrase: wallet.seedPhrase,
+      createdAt: new Date(),
+      lastUsed: new Date(),
+    })
 
     // Update user in database
     await userDb.updateUser(userId, { wallet: wallet.publicKey })
 
-    await bot.sendMessage(chatId, `✅ Wallet generated!\n\n🔐 <b>Address:</b>\n<code>${wallet.publicKey}</code>`, {
+    let message = "✅ <b>Wallet Imported Successfully!</b>\n\n"
+    message += "🔐 <b>Wallet Address:</b>\n"
+    message += `<code>${wallet.publicKey}</code>\n\n`
+    message += "💰 <b>Checking balance...</b>"
+
+    await bot.sendMessage(chatId, message, {
       reply_markup: {
-        inline_keyboard: [[{ text: "✅ Continue", callback_data: "main_menu" }]],
+        inline_keyboard: [
+          [{ text: "✅ Continue to Main Menu", callback_data: "main_menu" }],
+          [{ text: "🔐 View Wallet Details", callback_data: "show_wallet" }],
+        ],
       },
     })
+
+    // Get and update balance
+    try {
+      const balance = await walletManager.getBalance(wallet.publicKey)
+      await userDb.updateUser(userId, { solBalance: balance })
+
+      await bot.sendMessage(chatId, `💰 <b>Current Balance:</b> ${balance.toFixed(4)} SOL`)
+    } catch (balanceError) {
+      console.error("Error getting balance:", balanceError)
+    }
   } catch (error) {
-    console.error(`[BOT] Error storing seed phrase: ${error}`)
-    await bot.sendMessage(chatId, "❌ Error storing seed phrase. Please ensure it is valid and try again.")
+    console.error(`[BOT] Error importing from seed phrase: ${error}`)
+    await bot.sendMessage(chatId, "❌ Error importing wallet. Please ensure your seed phrase is valid and try again.")
   }
 }
 
 async function handlePrivateKeyInput(chatId: number, text: string, userId: number, bot: TelegramBot) {
   try {
     console.log(`[BOT] Received private key from user ${userId}`)
-    await firebase.storePrivateKey(userId, text)
     userStates.delete(userId)
-    await bot.sendMessage(chatId, "✅ Private key stored securely. Importing wallet...")
+    await bot.sendMessage(chatId, "✅ Private key received. Importing wallet...")
 
-    // Import wallet
-    const wallet = await walletManager.importWalletFromPrivateKey(text)
+    // Import wallet from private key
+    const wallet = await walletManager.importFromPrivateKey(text, userId)
     console.log(`[BOT] Imported wallet: ${wallet.publicKey}`)
 
     // Store wallet in Firebase
-    await firebase.storeWallet(userId, wallet.publicKey, wallet.privateKey)
+    await firebase.storeWallet(userId, {
+      publicKey: wallet.publicKey,
+      privateKey: wallet.privateKey,
+      seedPhrase: wallet.seedPhrase, // Will be null for private key import
+      createdAt: new Date(),
+      lastUsed: new Date(),
+    })
 
     // Update user in database
     await userDb.updateUser(userId, { wallet: wallet.publicKey })
 
-    await bot.sendMessage(chatId, `✅ Wallet imported!\n\n🔐 <b>Address:</b>\n<code>${wallet.publicKey}</code>`, {
+    let message = "✅ <b>Wallet Imported Successfully!</b>\n\n"
+    message += "🔐 <b>Wallet Address:</b>\n"
+    message += `<code>${wallet.publicKey}</code>\n\n`
+    message += "💰 <b>Checking balance...</b>"
+
+    await bot.sendMessage(chatId, message, {
       reply_markup: {
-        inline_keyboard: [[{ text: "✅ Continue", callback_data: "main_menu" }]],
+        inline_keyboard: [
+          [{ text: "✅ Continue to Main Menu", callback_data: "main_menu" }],
+          [{ text: "🔐 View Wallet Details", callback_data: "show_wallet" }],
+        ],
       },
     })
+
+    // Get and update balance
+    try {
+      const balance = await walletManager.getBalance(wallet.publicKey)
+      await userDb.updateUser(userId, { solBalance: balance })
+
+      await bot.sendMessage(chatId, `💰 <b>Current Balance:</b> ${balance.toFixed(4)} SOL`)
+    } catch (balanceError) {
+      console.error("Error getting balance:", balanceError)
+    }
   } catch (error) {
-    console.error(`[BOT] Error storing private key: ${error}`)
-    await bot.sendMessage(chatId, "❌ Error storing private key. Please ensure it is valid and try again.")
+    console.error(`[BOT] Error importing from private key: ${error}`)
+    await bot.sendMessage(chatId, "❌ Error importing wallet. Please ensure your private key is valid and try again.")
   }
 }
 
