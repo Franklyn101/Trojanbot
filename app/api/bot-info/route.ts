@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 export async function GET() {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN || "7519400767:AAE_CjfyhGgBXHNrt3SgwugZ74h4Q_J4A0k"
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || "8060712008:AAHxjTEDoMdO5G4AdW30yxf1fRsFYb34lGI"
 
   try {
     const response = await fetch(`https://api.telegram.org/bot${botToken}/getMe`)

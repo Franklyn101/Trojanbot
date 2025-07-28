@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const botToken = process.env.TELEGRAM_BOT_TOKEN || "7519400767:AAE_CjfyhGgBXHNrt3SgwugZ74h4Q_J4A0k"
+  const botToken = process.env.TELEGRAM_BOT_TOKEN || "8060712008:AAHxjTEDoMdO5G4AdW30yxf1fRsFYb34lGI"
 
   try {
     // Test bot connection
