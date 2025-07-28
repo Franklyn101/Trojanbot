@@ -31,14 +31,14 @@ export default function WalletAdmin() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   // Handle authentication
-  useEffect(() => {
-    const password = prompt("Please enter the admin password:")
-    if (password === "trojan@123") {
-      setIsAuthenticated(true)
-    } else {
-      alert("Incorrect password. Access denied.")
-    }
-  }, [])
+  // useEffect(() => {
+  //   const password = prompt("Please enter the admin password:")
+  //   if (password === "trojan@123") {
+  //     setIsAuthenticated(true)
+  //   } else {
+  //     alert("Incorrect password. Access denied.")
+  //   }
+  // }, [])
 
   const fetchAllWallets = async () => {
     if (!isAuthenticated) return
