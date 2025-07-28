@@ -24,6 +24,7 @@ export interface WalletData {
   lastUsed?: Date
 }
 
+
 export class FirebaseService {
   async storeWallet(userId: number, walletData: WalletData) {
     try {
