@@ -3,13 +3,13 @@ import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } 
 
 // Firebase configuration
 const firebaseConfig = {
- apiKey: "AIzaSyA4zHpZ15Huv_to888EUNnKPXiLCftk0z4",
-  authDomain: "solanabot-3d8f7.firebaseapp.com",
-  projectId: "solanabot-3d8f7",
-  storageBucket: "solanabot-3d8f7.firebasestorage.app",
-  messagingSenderId: "71146229391",
-  appId: "1:71146229391:web:637b42f9c1b2632f35eafa",
-  measurementId: "G-L5TCH31QLS"
+ apiKey: "AIzaSyAQo1-9RiTA-pP7mDcU05Z08hDKa_Kos_A",
+  authDomain: "solbotapps.firebaseapp.com",
+  projectId: "solbotapps",
+  storageBucket: "solbotapps.firebasestorage.app",
+  messagingSenderId: "205726076137",
+  appId: "1:205726076137:web:a49f5b85d1c948133ef478",
+  measurementId: "G-BDLG9MH2NQ"
 }
 
 // Initialize Firebase
